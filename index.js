@@ -45,8 +45,9 @@ function validateLinks (links) {
 
 // Função para as estatísticas dos links
 function statsLinks (links) {
+  // armazena o tamanho do array limks / qtd total de links
   const linksSize = links.length
-  // cria um novo array com map p/extrair href e Set para criar um conjunto de valores únicos (ou seja, remover duplicata)
+  // cria um novo array com map p/extrair href e Set para criar um conjunto de valores únicos (remover duplicata)
   const uniqueLinks = [...new Set(links.map((link) => link.href))].length
   const brokenLinks = links.filter((link) => link.ok === 'FAIL').length
   return {
@@ -66,9 +67,9 @@ function readRecursion (absDirPath, fileCallback) {
       const stats = fs.statSync(filePath) // Obtém informações sobre o arquivo (se é um diretório, arquivo, etc.)
 
       if (stats.isDirectory()) {
-        readRecursion(filePath, fileCallback)
+        readRecursion(filePath, fileCallback) // fileCallback garante que os arquivos em subdiretórios também sejam lidos.
       } else if (stats.isFile() && file.endsWith('.md')) {
-        fileCallback(filePath)
+        fileCallback(filePath) // se for.md chama a função de retorno da chamada(filecallback) passando o path
       }
     }
   } catch (error) {
@@ -79,9 +80,8 @@ function readRecursion (absDirPath, fileCallback) {
 // FUNÇÃO PRINCIPAL DO PROJETO - ler arquivo(s) e extrair os links
 function fileRead (filePath) {
   return new Promise((resolve, reject) => {
-    fs.stat(filePath, (err, stats) => { // para verificar se o caminho aponta para um diretório ou arquivo válido
+    fs.stat(filePath, (err, stats) => { // verificar se o caminho aponta para um diretório ou arquivo válido
       if (err) {
-        // ENOENT - um arquivo ou diretório que não existe no sistema de arquivos.
         if (err.code === 'ENOENT') {
           // eslint-disable-next-line prefer-promise-reject-errors
           reject(`O arquivo ${filePath} não foi encontrado.`)
@@ -99,7 +99,7 @@ function fileRead (filePath) {
             return fs.promises
               .readFile(file, 'utf8')
               .then((data) => {
-                const links = extractLinks(data, file) // Extrai os links do arquivo
+                const links = extractLinks(data, file) // chamar a função p/ Extrai os links do arquivo
                 // Valida os links
                 return validateLinks(links).then((validatedLinks) => {
                   // Calcula as estatísticas dos links

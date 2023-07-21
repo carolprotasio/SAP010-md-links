@@ -32,7 +32,7 @@ program
             data.push([
               colors.blue(link.href),
               colors.magenta(link.text),
-              colors.yellow(link.ok + ' / ' + link.status),
+              colors.yellow(link.ok + ' => ' + link.status),
               colors.green(link.file)
             ])
           })

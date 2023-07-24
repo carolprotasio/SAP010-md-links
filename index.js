@@ -4,18 +4,16 @@ const path = require('path')
 
 // Função para extrair o texto do link
 function extractLinks (text, filePath) {
-  const regex = /\[([^[\]]*?)\]\((https?:\/\/[^\s?#.].[^\s]*)\)/gm // procura por padrões MD
+  const regex = /\[([^[\]]*?)\]\((https?:\/\/[^\s?#.].[^\s]*)\)/gm
   const links = []
-  let match // Variável para armazenar o resultado de cada execução da expressão regular
+  let match
 
   while ((match = regex.exec(text)) !== null) {
-    const linkText = match[1] // O match[1] representa o texto do link (texto entre colchetes [])
-    const linkHref = match[2] // O match[2] representa o href do link (URL entre parênteses ())
+    const linkText = match[1]
+    const linkHref = match[2]
 
-    // Cria um objeto representando o link encontrado, contendo as informações
-    // de href (URL), text (texto do link) e file (caminho do arquivo onde foi encontrado)
     const link = { href: linkHref, text: linkText, file: filePath }
-    links.push(link) // add no array links
+    links.push(link)
   }
 
   return links
@@ -23,7 +21,7 @@ function extractLinks (text, filePath) {
 // Função para validar os links
 function validateLinks (links) {
   const promises = links.map((link) => {
-    return fetch(link.href) // percorrer cada link e realizar uma requisição HTTP(fetch)
+    return fetch(link.href)
       .then((response) => {
         link.status = response.status
         link.ok = response.ok ? 'OK' : 'FAIL'
@@ -34,20 +32,18 @@ function validateLinks (links) {
       .catch(() => {
         link.status = 404
         link.ok = 'FAIL'
-        return link // Rejeita a promessa com o erro original(chamando os links com o erro)
+        return link
       })
   })
   /* console.log(promises) */
 
   return Promise.all(promises)
-  // As chamadas a fetch são encapsuladas em Promises e agrupadas usando Promise.all para obter um array de promessas que representa o resultado da validação de todos os links.
 }
 
 // Função para as estatísticas dos links
 function statsLinks (links) {
-  // armazena o tamanho do array limks / qtd total de links
   const linksSize = links.length
-  // cria um novo array com map p/extrair href e Set para criar um conjunto de valores únicos (remover duplicata)
+
   const uniqueLinks = [...new Set(links.map((link) => link.href))].length
   const brokenLinks = links.filter((link) => link.ok === 'FAIL').length
   return {
@@ -62,14 +58,14 @@ function readRecursion (absDirPath, fileCallback) {
   try {
     const files = fs.readdirSync(absDirPath)
 
-    for (const file of files) { // Loop para percorrer cada arquivo encontrado no diretório
-      const filePath = path.join(absDirPath, file) // absDirPath é o caminho absoluto do diretório - Constrói o caminho completo do arquivo com o file
-      const stats = fs.statSync(filePath) // Obtém informações sobre o arquivo (se é um diretório, arquivo, etc.)
+    for (const file of files) {
+      const filePath = path.join(absDirPath, file)
+      const stats = fs.statSync(filePath)
 
       if (stats.isDirectory()) {
-        readRecursion(filePath, fileCallback) // fileCallback garante que os arquivos em subdiretórios também sejam lidos.
+        readRecursion(filePath, fileCallback)
       } else if (stats.isFile() && file.endsWith('.md')) {
-        fileCallback(filePath) // se for.md chama a função de retorno da chamada(filecallback) passando o path
+        fileCallback(filePath)
       }
     }
   } catch (error) {
@@ -78,20 +74,21 @@ function readRecursion (absDirPath, fileCallback) {
 }
 
 // FUNÇÃO PRINCIPAL DO PROJETO - ler arquivo(s) e extrair os links
-function fileRead (filePath) {
+function fileRead (filePath, options) {
+  const extractedLinksArray = []
   return new Promise((resolve, reject) => {
-    fs.stat(filePath, (err, stats) => { // verificar se o caminho aponta para um diretório ou arquivo válido
+    fs.stat(filePath, (err, stats) => {
       if (err) {
         if (err.code === 'ENOENT') {
           // eslint-disable-next-line prefer-promise-reject-errors
           reject(`O arquivo ${filePath} não foi encontrado.`)
         }
       } else {
-        if (stats.isDirectory()) { // se o caminho é um diretorio
-          const markdownFiles = [] // criar array p/ armazenar arquivos MD
-          readRecursion(filePath, (file) => { // Chama a função de leitura recursiva de diretórios para buscar os arquivos MD
+        if (stats.isDirectory()) {
+          const markdownFiles = []
+          readRecursion(filePath, (file) => {
             if (file.endsWith('.md')) {
-              markdownFiles.push(file) // add no array
+              markdownFiles.push(file)
             }
           })
           // Cria um array de promessas para ler cada arquivo MD
@@ -99,7 +96,8 @@ function fileRead (filePath) {
             return fs.promises
               .readFile(file, 'utf8')
               .then((data) => {
-                const links = extractLinks(data, file) // chamar a função p/ Extrai os links do arquivo
+                const links = extractLinks(data, file)
+                extractedLinksArray.push(...links)
                 // Valida os links
                 return validateLinks(links).then((validatedLinks) => {
                   // Calcula as estatísticas dos links
@@ -114,8 +112,9 @@ function fileRead (filePath) {
           })
           // Executa todas as promessas em paralelo usando Promise.all
           Promise.all(promises)
-            .then((results) => {
-              resolve(results) // Resolve a promessa com o resultado das leituras de arquivo
+            .then(() => {
+            // Após todas as leituras, resolve a promessa com o resultado contendo a propriedade 'links'
+              resolve({ links: extractedLinksArray })
             })
             .catch((error) => {
               reject(error) // rejeita se tiver algum erro de leitura
@@ -129,7 +128,7 @@ function fileRead (filePath) {
               validateLinks(links)
                 .then((validatedLinks) => {
                   const statistics = statsLinks(validatedLinks) // Calcula as estatísticas dos links
-                  resolve({ file: filePath, links: validatedLinks, stats: statistics }) // Resolve a promessa com o objeto contendo o arquivo, os links validados e as estatísticas
+                  resolve({ file: filePath, links: validatedLinks, stats: statistics })
                 })
                 .catch((error) => {
                   reject(error)

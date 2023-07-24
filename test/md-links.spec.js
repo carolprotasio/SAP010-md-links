@@ -79,6 +79,20 @@ describe('Funções de Validação de Links', () => {
         `O caminho ${filePath} não é um arquivo Markdown válido.`
       )
     })
+    test('Deve retornar as propriedades de um diretorio valido', () => {
+      const filePath = './mdfiles/'
+      const options = {}
+
+      return fileRead(filePath, options).then((result) => {
+        expect(result).toHaveProperty('links')
+        result.links.forEach((link) => {
+          expect(link).toHaveProperty('text')
+          expect(link).toHaveProperty('href')
+          expect(link).toHaveProperty('file')
+        })
+        // jest.setTimeout(20000)
+      })
+    }, 20000)
 
     test('Deve ler o arquivo e extrair os links corretamente', () => {
       const filePath = './mdFiles/files.md'

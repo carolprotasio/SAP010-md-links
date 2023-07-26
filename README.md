@@ -24,7 +24,7 @@ Para instalar o MDLinks, você pode executar o seguinte comando no terminal:
 
 `Terminal`: npm -y <br>
 `Terminal`: npm i md-links-carol-protasio
-- cria um arquivo index.js e importa as funções: 
+- cria um arquivo index.js e importe as funções: 
 ```js
 const { fileRead, 
         validateLinks, 
